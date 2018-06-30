@@ -1,0 +1,317 @@
+﻿package com.cg.poi.poc;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.List;
+
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.util.Units;
+import org.apache.poi.wp.usermodel.HeaderFooterType;
+import org.apache.poi.xwpf.usermodel.BreakType;
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFHeader;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTPageMargins;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHMerge;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHeight;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTShd;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTrPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTVerticalJc;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STMerge;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STShd;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STVerticalJc;
+
+public class POIWordPOC {
+	
+	public static void main(String[] args) {
+		
+		try {
+			XWPFDocument document = new XWPFDocument();
+
+			//tried to add margin
+			/*CTSectPr sectPr = document.getDocument().getBody().addNewSectPr();
+			CTPageMargins pgMar = sectPr.addNewPgMar();*/
+			
+			HeaderData headerData = new HeaderData("Briefing Pack – GFSK Database ", "Alistair Montgomery", 212490615, "ANKARA CCPP ST (Baymina)", "15.Jun.2018");
+			
+			createHeader(document, headerData);
+			
+			attachLogo(document);
+			
+			String docType = "Customer Briefing Pack";
+			creatDocumentHeading(docType, document);
+			
+			//writing the document in o/p
+			FileOutputStream out = new FileOutputStream(new File("poc.docx"));
+			document.write(out);
+			out.close();
+			document.close();
+			System.out.println("Document is created successfully");
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private static void creatDocumentHeading(String docType, XWPFDocument document) {
+		
+		XWPFParagraph para = document.createParagraph();
+		para.setAlignment(ParagraphAlignment.CENTER);
+		XWPFRun run = para.createRun();
+		
+		setParaStyle(run, "0e3e9e", 24);
+		
+		run.addCarriageReturn();
+		run.setText("Global Fleet Service Knowledge (GFSK)");
+		run.addCarriageReturn();run.addCarriageReturn();
+		run.setText("Customer Briefing Pack");
+		run.addCarriageReturn();run.addCarriageReturn();
+		run = para.createRun();
+		setParaStyle(run, "0e3e9e", 14);
+		run.setText("Company Confidential – ");
+		run = para.createRun();
+		setParaStyle(run, "e61125", 14);
+		
+		run.setText("Internal Use Only");
+		
+		run = para.createRun();
+		setParaStyle(run, "0e3e9e", 14);
+		run.addCarriageReturn();
+		run.setText("Not to be Disclosed to a Third Party");
+	}
+
+	private static void setParaStyle(XWPFRun run, String color, int fSize) {
+		run.setFontFamily("Arial");
+		run.setBold(true);
+		run.setColor(color);
+		run.setFontSize(fSize);
+		
+		
+	}
+
+	private static void attachLogo(XWPFDocument document) {
+		// TODO Auto-generated method stub
+		try {
+			String fileName = "Images\\geLogo.png";
+			FileInputStream in = new FileInputStream(fileName);
+			XWPFParagraph para = document.createParagraph();
+			//para.setAlignment(ParagraphAlignment.CENTER);
+			XWPFRun run = para.createRun();
+			run.addCarriageReturn();
+			para.setAlignment(ParagraphAlignment.CENTER);
+			//run.setText("                                                                ");
+			run.addPicture(in, XWPFDocument.PICTURE_TYPE_PNG, fileName, Units.toEMU(100), Units.toEMU(100));
+			
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidFormatException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private static void createHeader(XWPFDocument document,HeaderData headerData) {
+		// TODO - create header create table set data dynamically
+		try {
+			XWPFHeader header = document.createHeader(HeaderFooterType.DEFAULT);
+			
+			int cols = headerData.getClass().getDeclaredFields().length - 1;
+			XWPFTable headerTable = header.createTable(2, cols);
+			headerTable.getRow(0).getCell(0).removeParagraph(0);
+			for (int i = 0; i < cols; i++) {
+				headerTable.getRow(1).getCell(i).removeParagraph(0);
+			}
+			mergeCell(headerTable, cols);
+			
+			//Setting data for row0
+			XWPFTableRow row0 = headerTable.getRow(0);
+			System.out.println("Height before ::: "+row0.getHeight());
+			//row0.setHeight(38);
+			
+			CTTrPr rowProperties = row0.getCtRow().addNewTrPr();
+			CTHeight rowHeight = rowProperties.addNewTrHeight();
+			rowHeight.setVal(BigInteger.valueOf(360));
+			
+			System.out.println("Height after ::: "+row0.getHeight());
+			//row0.getCtRow().getTrPr().getTrHeightArray(0).setHRule();; //set w:hRule="exact"
+			XWPFRun run = row0.getCell(0).addParagraph().createRun();
+			
+			//add picture to row 0 col 0
+			String fileName = "Images\\geLogo.png";
+			FileInputStream in = new FileInputStream(fileName);
+			run.addPicture(in, XWPFDocument.PICTURE_TYPE_PNG, fileName, Units.toEMU(20), Units.toEMU(20));
+			
+			//add paragraph to row 0 col 1
+			//row0.getCell(1).removeParagraph(0);
+			row0.getCell(1).setText(headerData.getHeading());
+			
+			//Setting data for row1
+			XWPFTableRow row1 = headerTable.getRow(1);
+			List<String> headerList = headerData.returnList();
+			List<String> headerListNames = headerData.returnListName();
+			int headerSize = headerList.size();
+			
+			for (int i = 0, j=1; i < headerSize-1; i++, j++) {
+				run = row1.getCell(i).addParagraph().createRun();
+				setParaStyle(run, "000000", 8);
+				run.setText(headerListNames.get(j)+ " : " /*+ headerList.get(j)*/);
+				//run.addCarriageReturn();
+				run.setText("                                ");
+				run.setText(headerList.get(j));
+			}
+			
+		} catch (SecurityException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidFormatException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}catch (Exception e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+		
+	}
+
+	private static void mergeCell(XWPFTable table , int cols) {
+		// TODO Auto-generated method stub
+		CTHMerge hMerge = CTHMerge.Factory.newInstance();
+		hMerge.setVal(STMerge.RESTART);
+		XWPFTableRow row0 = table.getRow(0);
+		row0.getCell(0).getCTTc().addNewTcPr().setHMerge(hMerge);
+		row0.getCell(1).getCTTc().addNewTcPr().setHMerge(hMerge);
+		
+		CTHMerge cthMerge = CTHMerge.Factory.newInstance();
+		cthMerge.setVal(STMerge.CONTINUE);
+		for (int i = 2; i < cols; i++) {
+			XWPFTableCell cell = table.getRow(0).getCell(i);
+			cell.getCTTc().addNewTcPr().setHMerge(cthMerge);
+		}
+	}
+	
+	public static void headerCellStyles(XWPFTableCell cell) {
+		// get a table cell properties element (tcPr)
+		CTTcPr cPr = cell.getCTTc().addNewTcPr();
+		// set vertical alignment to "center"
+		CTVerticalJc verAlign = cPr.addNewVAlign();
+		verAlign.setVal(STVerticalJc.CENTER);
+
+		// create cell color element
+		CTShd ctShd = cPr.addNewShd();
+		ctShd.setColor("E0F1FF");
+		ctShd.setVal(STShd.CLEAR);
+		ctShd.setFill("65789F");
+		
+	}
+
+}
+
+
+
+-------------------------------------------------------------
+
+package com.cg.poi.poc;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class HeaderData {
+
+	private String heading;
+	private String producedBy;
+	private long sso;
+	private String equipmentName;
+	private String producedOn;
+	
+	public HeaderData() {
+		super();
+	}
+	public HeaderData(String heading, String producedBy, long sso,
+			String equipmentName, String producedOn) {
+		super();
+		this.heading = heading;
+		this.producedBy = producedBy;
+		this.sso = sso;
+		this.equipmentName = equipmentName;
+		this.producedOn = producedOn;
+	}
+	public String getHeading() {
+		return heading;
+	}
+	public void setHeading(String heading) {
+		this.heading = heading;
+	}
+	public String getProducedBy() {
+		return producedBy;
+	}
+	public void setProducedBy(String producedBy) {
+		this.producedBy = producedBy;
+	}
+	public long getSso() {
+		return sso;
+	}
+	public void setSso(long sso) {
+		this.sso = sso;
+	}
+	public String getEquipmentName() {
+		return equipmentName;
+	}
+	public void setEquipmentName(String equipmentName) {
+		this.equipmentName = equipmentName;
+	}
+	public String getProducedOn() {
+		return producedOn;
+	}
+	public void setProducedOn(String producedOn) {
+		this.producedOn = producedOn;
+	}
+	
+	public List<String> returnList() {
+		List<String> list = new ArrayList<String>();
+		list.add(heading);
+		list.add(producedBy);
+		list.add(Long.toString(sso));
+		list.add(equipmentName);
+		list.add(producedOn);
+		return list;
+	}
+	
+	public List<String> returnListName() {
+		List<String> list = new ArrayList<String>();
+		list.add("Heading");
+		list.add("Produced By");
+		list.add("SSO");
+		list.add("Equipment Name");
+		list.add("Produced On");
+		return list;
+	}
+	
+}
+
+
+-------------------------------------------------------------------------------------------
